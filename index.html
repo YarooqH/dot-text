@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twelve Hundred Dots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one working screen. A thin header, the dot stage as the hero, a control bar under it, then the method in three steps and the code. */
+:root {
+  color-scheme: light;
+  --bg: #e9ecf1;       /* cool paper */
+  --stage: #f6f7f9;    /* the board the dots sit on */
+  --grid: #dde1e8;     /* faint perforation on the board */
+  --ink: #13161c;      /* dots at rest, text */
+  --muted: #586070;
+  --line: #cdd2db;
+  --accent: #2c4fe0;   /* dots in flight */
+  --on-accent: #ffffff;
+  --display: "Archivo Black", "Arial Black", sans-serif;
+  --body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0f14; --stage: #14171e; --grid: #1f232c; --ink: #e8ebf1; --muted: #99a1b2;
+    --line: #2a2f3b; --accent: #8aa0ff; --on-accent: #0d0f14; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0f14; --stage: #14171e; --grid: #1f232c; --ink: #e8ebf1; --muted: #99a1b2;
+  --line: #2a2f3b; --accent: #8aa0ff; --on-accent: #0d0f14; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 var(--body);
+  padding-inline: clamp(16px, 4vw, 48px);
+  padding-block: 24px 64px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 32px; }
+h1 { font: 400 clamp(22px, 2.6vw, 28px)/1.1 var(--display); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.lede { margin: 6px 0 0; color: var(--muted); }
+.stats { display: flex; gap: 20px; margin: 0; font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { font-weight: 500; color: var(--ink); }
+.stats .flying b { color: var(--accent); display: inline-block; min-width: 4ch; }
+
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1.95;
+  max-height: 64vh;
+  min-height: 200px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: radial-gradient(circle, var(--grid) 1px, transparent 1.4px) 0 0 / 18px 18px, var(--stage);
+  overflow: hidden;
+}
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+.hint { position: absolute; left: 16px; bottom: 12px; margin: 0; font: 400 11px/1.3 var(--mono); letter-spacing: 0.04em; color: var(--muted); pointer-events: none; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.field { display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-width: 0; height: 46px; padding-inline: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--stage); }
+.field:focus-within { border-color: var(--accent); }
+.field span { font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: 600 18px/1 var(--body); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.chip { height: 34px; padding-inline: 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; font: 500 13px/1 var(--body); }
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.seg { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--stage); }
+.seg button { height: 32px; padding-inline: 12px; border: 0; border-radius: 7px; background: transparent; font: 500 13px/1 var(--body); color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.size { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding-inline: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--stage); }
+.size span, .size output { font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+.size output { min-width: 4ch; color: var(--ink); }
+.size input { width: 120px; accent-color: var(--accent); }
+.emoji-field { flex: 0 1 260px; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding-inline: 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; font: 500 13px/1 var(--body); }
+.toggle::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--muted); }
+.toggle[aria-pressed="true"]::before { background: var(--accent); border-color: var(--accent); }
+
+.below { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; }
+h2 { font: 600 13px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.steps li { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+.steps .n { font: 500 12px/1.6 var(--mono); color: var(--accent); }
+.steps h3 { margin: 0 0 2px; font: 600 16px/1.35 var(--body); }
+.steps p { margin: 0; color: var(--muted); max-width: 60ch; }
+
+.code { min-width: 0; }
+.code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.code-head h2 { margin: 0; }
+.copy { height: 32px; padding-inline: 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; font: 500 12px/1 var(--mono); }
+pre { margin: 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--stage); overflow-x: auto; font: 400 13px/1.65 var(--mono); }
+pre .c { color: var(--muted); }
+pre .s { color: var(--accent); }
+details { margin-top: 12px; }
+summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+details pre { margin-top: 10px; max-height: 360px; font-size: 12px; }
+.opts { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+.opts code { font: 400 12px/1 var(--mono); color: var(--ink); }
+
+
+@media (max-width: 820px) {
+  .below { grid-template-columns: minmax(0, 1fr); }
+  .stage { aspect-ratio: 1.35; }
+}
+@media (max-width: 480px) {
+  .steps li { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Twelve hundred dots</h1>
+      <p class="lede">Type a word. The same 1,200 dots fly into it.</p>
+    </div>
+    <p class="stats"><span>Dots <b>1,200</b></span><span class="flying">In flight <b id="flying">0</b></span></p>
+  </header>
+
+  <div class="stage">
+    <canvas id="dots" role="img" aria-label="The word hello drawn in dots"></canvas>
+    <p class="hint">Move through the letters to push the dots aside</p>
+  </div>
+
+  <div class="controls">
+    <label class="field" for="word"><span>Word</span><input id="word" type="text" value="hello" maxlength="14" autocomplete="off" spellcheck="false"></label>
+    <div class="chips" id="chips" role="group" aria-label="Example words"></div>
+    <div class="seg" role="group" aria-label="Shape">
+      <button type="button" id="shape-circle" data-shape="circle" aria-pressed="true">Dots</button>
+      <button type="button" id="shape-square" data-shape="square" aria-pressed="false">Pixels</button>
+      <button type="button" id="shape-emoji" data-shape="emoji" aria-pressed="false">Emoji</button>
+    </div>
+    <label class="size" for="size"><span>Size</span><input id="size" type="range" min="15" max="80" value="34"><output id="size-out" for="size">0.34</output></label>
+    <div class="seg" role="group" aria-label="Motion">
+      <button type="button" id="mode-flow" data-mode="flow" aria-pressed="true">Flow</button>
+      <button type="button" id="mode-swarm" data-mode="swarm" aria-pressed="false">Swarm</button>
+    </div>
+    <button type="button" class="toggle" id="auto" aria-pressed="true">Cycle words</button>
+  </div>
+
+  <div class="controls" id="emoji-row" hidden>
+    <label class="field emoji-field" for="emoji"><span>Emoji</span><input id="emoji" type="text" value="✨" maxlength="24" autocomplete="off" spellcheck="false"></label>
+    <div class="chips" id="emoji-chips" role="group" aria-label="Example emoji"></div>
+  </div>
+
+  <div class="below">
+    <section aria-labelledby="how">
+      <h2 id="how">How the dots move</h2>
+      <ol class="steps">
+        <li><span class="n">Step 1</span><div><h3>Sample the word</h3><p>The word is drawn once on a hidden canvas. A grid is laid over the letters (hex for dots, square for pixels) and its spacing is tuned until as close to 1,200 points as possible land on the ink. Any dots left over stack on existing points, so every word uses the whole set.</p></div></li>
+        <li><span class="n">Step 2</span><div><h3>Pair old dots with new spots</h3><p>Both sets are sorted left to right and cut into thin strips, then matched top to bottom inside each strip. Dots that start next to each other land next to each other, so the change reads as one movement. Swarm mode shuffles the pairs instead.</p></div></li>
+        <li><span class="n">Step 3</span><div><h3>Fly on a curve</h3><p>Each dot follows its own bowed path. Start times sweep from the left edge of the word to the right, dots shrink slightly and take the accent color mid-flight, and a new word can interrupt a flight at any point.</p></div></li>
+      </ol>
+    </section>
+
+    <section class="code" aria-labelledby="use">
+      <div class="code-head">
+        <h2 id="use">Use it</h2>
+        <button type="button" class="copy" id="copy">Copy function</button>
+      </div>
+<pre><code>const dots = dotText(canvas, {
+  count: 1200,
+  shape: <span class="s">"circle"</span>,  <span class="c">// "square" for pixels, "emoji" for emoji</span>
+  emoji: <span class="s">"🍓🍒"</span>,    <span class="c">// used when shape is "emoji"</span>
+  dot: <span class="s">0.34</span>,        <span class="c">// size; 0.5 = neighbors touch</span>
+  mode: <span class="s">"flow"</span>,     <span class="c">// or "swarm"</span>
+  color: <span class="s">"#13161c"</span>,
+  accent: <span class="s">"#2c4fe0"</span>,
+});
+
+dots.set(<span class="s">"hello"</span>);
+dots.set(<span class="s">"world"</span>); <span class="c">// same 1,200 dots, new word</span></code></pre>
+      <p class="opts">Other options: <code>font</code>, <code>padding</code>, <code>duration</code>, <code>stagger</code>, <code>arc</code>, <code>pointer</code>, <code>onTick</code>. Change them later with <code>dots.options({...})</code>.</p>
+      <details id="source-box">
+        <summary>Show the full function</summary>
+        <pre id="source" tabindex="0"></pre>
+      </details>
+    </section>
+  </div>
+
+</div>
+
+<script src="dot-text.js"></script>
+<script>
+(async () => {
+  const $ = (s) => document.querySelector(s);
+  const canvas = $("#dots"), input = $("#word"), chips = $("#chips"), auto = $("#auto");
+  const flyingEl = $("#flying"), copyBtn = $("#copy"), source = $("#source");
+  const words = ["hello", "dots", "fly", "morph", "1,200", "zero deps", "type"];
+  const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  const dots = dotText(canvas, {
+    count: 1200,
+    color: token("--ink"),
+    accent: token("--accent"),
+    onTick: (n) => (flyingEl.textContent = n.toLocaleString("en-US")),
+  });
+
+  const recolor = () => dots.options({ color: token("--ink"), accent: token("--accent") });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", recolor);
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  source.textContent = dotText.toString();
+
+  words.forEach((w) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = w;
+    b.dataset.word = w;
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => {
+      cycle(false);
+      input.value = w;
+      show(w);
+    });
+    chips.append(b);
+  });
+
+  function show(w) {
+    if (w === dots.text) return;
+    dots.set(w);
+    canvas.setAttribute("aria-label", w.trim() ? `The word ${w} drawn in dots` : "Dots gathered into a line, waiting for a word");
+    chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.word === w)));
+  }
+
+  let timer = 0, at = 0;
+  function cycle(on) {
+    clearInterval(timer);
+    auto.setAttribute("aria-pressed", String(on));
+    if (on) {
+      timer = setInterval(() => {
+        at = (words.indexOf(input.value) + 1) % words.length;
+        input.value = words[at];
+        show(words[at]);
+      }, 2600);
+    }
+  }
+  auto.addEventListener("click", () => cycle(auto.getAttribute("aria-pressed") !== "true"));
+
+  let typing = 0;
+  input.addEventListener("input", () => {
+    cycle(false);
+    clearTimeout(typing);
+    typing = setTimeout(() => show(input.value), 120);
+  });
+
+  const DEFAULT_SIZE = { circle: 0.34, square: 0.42, emoji: 0.5 };
+  const sizeInput = $("#size"), sizeOut = $("#size-out");
+  function setSize(value) {
+    sizeInput.value = String(Math.round(value * 100));
+    sizeOut.textContent = value.toFixed(2);
+  }
+  sizeInput.addEventListener("input", () => {
+    const value = Number(sizeInput.value) / 100;
+    sizeOut.textContent = value.toFixed(2);
+    dots.options({ dot: value });
+  });
+
+  const emojiInput = $("#emoji"), emojiChips = $("#emoji-chips");
+  ["✨", "🔥", "🍓🍒", "💧🌊", "⭐", "🟥🟧🟨"].forEach((set) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = set;
+    b.setAttribute("aria-label", `Use ${set}`);
+    b.addEventListener("click", () => {
+      emojiInput.value = set;
+      dots.options({ emoji: set });
+    });
+    emojiChips.append(b);
+  });
+  emojiInput.addEventListener("input", () => {
+    if (emojiInput.value.trim()) dots.options({ emoji: emojiInput.value });
+  });
+
+  document.querySelectorAll("[data-shape]").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("[data-shape]").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+      const shape = b.dataset.shape;
+      // each shape starts at its own default size; the slider then fine-tunes it
+      dots.options({ shape, dot: null });
+      setSize(DEFAULT_SIZE[shape]);
+      $("#emoji-row").hidden = shape !== "emoji";
+    })
+  );
+
+  document.querySelectorAll("[data-mode]").forEach((b) =>
+    b.addEventListener("click", () => {
+      document.querySelectorAll("[data-mode]").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+      dots.options({ mode: b.dataset.mode });
+      // swarm is visible right away: the dots reshuffle through the same word
+      if (b.dataset.mode === "swarm") dots.set(dots.text);
+    })
+  );
+
+  copyBtn.addEventListener("click", () => {
+    const done = (label) => {
+      copyBtn.textContent = label;
+      setTimeout(() => (copyBtn.textContent = "Copy function"), 1800);
+    };
+    navigator.clipboard.writeText(dotText.toString()).then(
+      () => done("Copied"),
+      () => {
+        $("#source-box").open = true;
+        getSelection().selectAllChildren(source);
+        source.focus();
+        done("Text selected");
+      }
+    );
+  });
+
+  // Glyphs must be loaded before the word is sampled, or the dots trace a fallback font.
+  try {
+    await Promise.race([document.fonts.load('400 100px "Archivo Black"'), new Promise((r) => setTimeout(r, 2500))]);
+  } catch (e) {}
+  show(input.value);
+  cycle(!matchMedia("(prefers-reduced-motion: reduce)").matches);
+})();
+</script>
+
+</body>
+</html>
